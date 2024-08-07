@@ -23,7 +23,7 @@ class IPHeader(ctypes.Structure):
 
 def parse_arguments():
     """
-    Parses the target IP address supplied by the command-line.
+    Parses command-line arguments to get the IP address.
     Ensures the IP address is valid.
     """
     parser = argparse.ArgumentParser(description='Network packet sniffer.')
@@ -46,17 +46,21 @@ def parse_ip_header(data):
     """
     Parses the IP header from the packet data and extracts relevant information.
     """
-    # Create an instance of the IPHeader structure
-    ip_header = IPHeader.from_buffer_copy(data[:20])
+    # Extract the first 20 bytes of the IP header
+    ip_header_raw = data[:20]
     
-    # Extract fields
-    version_ihl = ip_header.version_ihl
+    # Unpack the IP header using the correct format
+    unpacked_header = struct.unpack('!BBHHHBBHII', ip_header_raw)
+    
+    version_ihl = unpacked_header[0]
     version = version_ihl >> 4
     ihl = version_ihl & 0x0F
     
-    protocol = ip_header.protocol
-    src_ip = ipaddress.ip_address(socket.inet_ntoa(struct.pack('!I', ip_header.src_ip)))
-    dst_ip = ipaddress.ip_address(socket.inet_ntoa(struct.pack('!I', ip_header.dst_ip)))
+    protocol = unpacked_header[6]
+    
+    # Convert source and destination IP addresses from bytes
+    src_ip = socket.inet_ntoa(struct.pack('!I', unpacked_header[8]))
+    dst_ip = socket.inet_ntoa(struct.pack('!I', unpacked_header[9]))
     
     return {
         'version': version,
